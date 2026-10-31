@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from modules.categorizer import categorize
 import plotly.express as px
+from modules.budget_analyzer import analyze_budget
+import plotly.graph_objects as go
 
 #Set up the Streamlit app configuration
 st.set_page_config(
@@ -122,4 +124,70 @@ if uploaded_file is not None:
             st.plotly_chart(
                 fig_bar,
                 use_container_width=True
-       )
+                )
+            #Budget Input Section
+            st.header("Monthly Budget Setup")
+            food_budget = st.number_input(
+                "Food Budget",
+                min_value=0,
+                value=5000
+                )
+            transport_budget = st.number_input(
+                "Transport Budget",
+                min_value=0,
+                value=3000
+                )
+            shopping_budget = st.number_input(
+                "Shopping Budget",
+                min_value=0,
+                value=4000
+                )
+            utilities_budget = st.number_input(
+                "Utilities Budget",
+                min_value=0,
+                value=2500
+                )
+            #Budget Dictionary
+            budgets = {
+                "Food": food_budget,
+                "Transport": transport_budget,
+                "Shopping": shopping_budget,
+                "Utilities": utilities_budget
+                }
+
+            #Generate Budget Analysis Report
+            report = analyze_budget(df, budgets)
+            budget_df = pd.DataFrame(report)
+
+            # Display Budget Table
+            st.subheader("Budget Analysis")
+            st.dataframe(budget_df)
+
+            #Adding overspending alerts
+            st.subheader("Overspending Alerts")
+            for _, row in budget_df.iterrows():
+                if row["Remaining"] < 0:
+                    st.error(
+                        f"You exceeded the {row['Category']} budget by ₹{abs(row['Remaining'])}"
+                        )
+
+                    #Budget vs Spending Bar Chart
+                    fig = go.Figure()
+                    fig.add_bar(
+                        name="Budget",
+                        x=budget_df["Category"],
+                        y=budget_df["Budget"]
+                        )
+                    fig.add_bar(
+                        name="Spent",
+                        x=budget_df["Category"],
+                        y=budget_df["Spent"]
+                        )
+                    fig.update_layout(
+                        barmode="group",
+                        title="Budget vs Actual Spending"
+                        )
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True
+                        )
